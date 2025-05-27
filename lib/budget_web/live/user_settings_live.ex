@@ -13,6 +13,19 @@ defmodule BudgetWeb.UserSettingsLive do
     <div class="space-y-12 divide-y">
       <div>
         <.simple_form
+          for={@name_form}
+          id="name_form"
+          phx-submit="update_name"
+          phx-change="validate_name"
+        >
+          <.input field={@name_form[:name]} type="text" label="Name" required />
+          <:actions>
+            <.button phx-disable-with="Changing...">Change Name</.button>
+          </:actions>
+        </.simple_form>
+      </div>
+      <div>
+        <.simple_form
           for={@email_form}
           id="email_form"
           phx-submit="update_email"
@@ -30,19 +43,6 @@ defmodule BudgetWeb.UserSettingsLive do
           />
           <:actions>
             <.button phx-disable-with="Changing...">Change Email</.button>
-          </:actions>
-        </.simple_form>
-      </div>
-      <div>
-        <.simple_form
-          for={@name_form}
-          id="name_form"
-          phx-submit="update_name"
-          phx-change="validate_name"
-        >
-          <.input field={@name_form[:name]} type="text" label="Name" required />
-          <:actions>
-            <.button phx-disable-with="Changing...">Change Name</.button>
           </:actions>
         </.simple_form>
       </div>
