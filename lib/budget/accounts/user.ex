@@ -96,6 +96,15 @@ defmodule Budget.Accounts.User do
   end
 
   @doc """
+  A user changeset for changing their name.
+  """
+  def name_changeset(user, attrs) do
+    user
+    |> cast(attrs, [:name])
+    |> validate_name()
+  end
+
+  @doc """
   A user changeset for changing the email.
 
   It requires the email to change otherwise an error is added.

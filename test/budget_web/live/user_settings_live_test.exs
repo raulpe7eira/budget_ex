@@ -12,6 +12,7 @@ defmodule BudgetWeb.UserSettingsLiveTest do
         |> log_in_user(user_fixture())
         |> live(~p"/users/settings")
 
+      assert html =~ "Change Name"
       assert html =~ "Change Email"
       assert html =~ "Change Password"
     end
@@ -22,6 +23,59 @@ defmodule BudgetWeb.UserSettingsLiveTest do
       assert {:redirect, %{to: path, flash: flash}} = redirect
       assert path == ~p"/users/log_in"
       assert %{"error" => "You must log in to access this page."} = flash
+    end
+  end
+
+  describe "update name form" do
+    setup %{conn: conn} do
+      user = user_fixture()
+      %{conn: log_in_user(conn, user), user: user}
+    end
+
+    test "updates the user's name", %{conn: conn, user: user} do
+      new_name = user.name <> " Updated!"
+
+      {:ok, lv, _html} = live(conn, ~p"/users/settings")
+
+      form =
+        form(lv, "#name_form", %{
+          "user" => %{
+            "name" => new_name
+          }
+        })
+
+      html = render_submit(form)
+
+      assert html =~ "Name updated"
+    end
+
+    test "renders errors with invalid data (phx-change)", %{conn: conn} do
+      {:ok, lv, _html} = live(conn, ~p"/users/settings")
+
+      result =
+        lv
+        |> element("#name_form")
+        |> render_change(%{
+          "action" => "update_name",
+          "user" => %{"name" => "a"}
+        })
+
+      assert result =~ "Change Name"
+      assert result =~ "at least 2"
+    end
+
+    test "renders errors with invalid data (phx-submit)", %{conn: conn} do
+      {:ok, lv, _html} = live(conn, ~p"/users/settings")
+
+      result =
+        lv
+        |> form("#name_form", %{
+          "user" => %{"name" => "a"}
+        })
+        |> render_submit()
+
+      assert result =~ "Change Name"
+      assert result =~ "at least 2"
     end
   end
 
