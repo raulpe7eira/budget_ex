@@ -1,7 +1,10 @@
 defmodule Budget.TrackingTest do
+  alias Budget.TrackingFixtures
+  alias Budget.TrackingFixtures
   use Budget.DataCase
 
   alias Budget.AccountsFixtures
+  alias Budget.TrackingFixtures
   alias Budget.Tracking
   alias Budget.Tracking.Budget
 
@@ -9,13 +12,7 @@ defmodule Budget.TrackingTest do
     test "create_budget/2 with valid data creator budget" do
       user = AccountsFixtures.user_fixture()
 
-      valid_attrs = %{
-        name: "some name",
-        description: "some description",
-        start_date: ~D[2025-01-01],
-        end_date: ~D[2025-01-31],
-        creator_id: user.id
-      }
+      valid_attrs = TrackingFixtures.valid_budget_attributes(%{creator_id: user.id})
 
       assert {:ok, %Budget{} = budget} = Tracking.create_budget(valid_attrs)
 
@@ -27,14 +24,9 @@ defmodule Budget.TrackingTest do
     end
 
     test "create_budget/2 requires name" do
-      user = AccountsFixtures.user_fixture()
-
-      attrs_without_name = %{
-        description: "some description",
-        start_date: ~D[2025-01-01],
-        end_date: ~D[2025-01-31],
-        creator_id: user.id
-      }
+      attrs_without_name =
+        TrackingFixtures.valid_budget_attributes()
+        |> Map.delete(:name)
 
       assert {:error, %Ecto.Changeset{} = changeset} = Tracking.create_budget(attrs_without_name)
 
@@ -43,15 +35,11 @@ defmodule Budget.TrackingTest do
     end
 
     test "create_budget/2 requires valid dates" do
-      user = AccountsFixtures.user_fixture()
-
-      attrs_end_before_start = %{
-        name: "some name",
-        description: "some description",
-        start_date: ~D[2025-12-31],
-        end_date: ~D[2025-01-01],
-        creator_id: user.id
-      }
+      attrs_end_before_start =
+        TrackingFixtures.valid_budget_attributes(%{
+          start_date: ~D[2025-12-31],
+          end_date: ~D[2025-01-01]
+        })
 
       assert {:error, %Ecto.Changeset{} = changeset} =
                Tracking.create_budget(attrs_end_before_start)
