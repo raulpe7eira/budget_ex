@@ -13,6 +13,22 @@ defmodule Budget.Tracking do
   def list_budgets, do: list_budgets([])
 
   def list_budgets(criteria) when is_list(criteria) do
+    criteria
+    |> budget_query()
+    |> Repo.all()
+  end
+
+  def get_budget(id, criteria \\ []) do
+    criteria
+    |> budget_query()
+    |> Repo.get(id)
+  end
+
+  def change_budget(budget, attrs \\ %{}) do
+    Budget.changeset(budget, attrs)
+  end
+
+  defp budget_query(criteria) do
     query = from(b in Budget)
 
     criteria
@@ -26,12 +42,5 @@ defmodule Budget.Tracking do
       _, query ->
         query
     end)
-    |> Repo.all()
-  end
-
-  def get_budget(id), do: Repo.get(Budget, id)
-
-  def change_budget(budget, attrs \\ %{}) do
-    Budget.changeset(budget, attrs)
   end
 end
