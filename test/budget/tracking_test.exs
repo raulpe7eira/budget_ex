@@ -7,7 +7,7 @@ defmodule Budget.TrackingTest do
   alias Budget.Tracking.Budget
 
   describe "budgets" do
-    test "create_budget/2 with valid data creator budget" do
+    test "create_budget/1 with valid data creator budget" do
       user = AccountsFixtures.user_fixture()
 
       valid_attrs = TrackingFixtures.valid_budget_attributes(%{creator_id: user.id})
@@ -21,7 +21,7 @@ defmodule Budget.TrackingTest do
       assert budget.creator_id == user.id
     end
 
-    test "create_budget/2 requires name" do
+    test "create_budget/1 requires name" do
       attrs_without_name =
         TrackingFixtures.valid_budget_attributes()
         |> Map.delete(:name)
@@ -32,7 +32,7 @@ defmodule Budget.TrackingTest do
       assert %{name: ["can't be blank"]} = errors_on(changeset)
     end
 
-    test "create_budget/2 requires valid dates" do
+    test "create_budget/1 requires valid dates" do
       attrs_end_before_start =
         TrackingFixtures.valid_budget_attributes(%{
           start_date: ~D[2025-12-31],
