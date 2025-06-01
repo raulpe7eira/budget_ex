@@ -4,6 +4,9 @@ defmodule Budget.Tracking.BudgetTransaction do
 
   alias Budget.Tracking.Budget
 
+  @max_amount 100_000
+  @min_amount 0
+
   @primary_key {:id, :binary_id, autogenerate: true}
   @foreign_key_type :binary_id
   schema "budget_transactions" do
@@ -22,6 +25,6 @@ defmodule Budget.Tracking.BudgetTransaction do
     budget_transaction
     |> cast(attrs, [:effective_date, :type, :amount, :description, :budget_id])
     |> validate_required([:effective_date, :type, :amount, :description, :budget_id])
-    |> validate_number(:amount, greater_than_or_equal_to: 0)
+    |> validate_number(:amount, greater_than: @min_amount, less_than_or_equal_to: @max_amount)
   end
 end
