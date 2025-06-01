@@ -19,7 +19,8 @@ defmodule BudgetWeb.CreateBudgetDialog do
   @impl true
   def handle_event("validate", %{"budget" => params}, socket) do
     changeset =
-      Tracking.change_budget(%Budget{}, params)
+      %Budget{}
+      |> Tracking.change_budget(params)
       |> Map.put(:action, :validate)
 
     {:noreply, assign(socket, form: to_form(changeset))}
@@ -29,15 +30,17 @@ defmodule BudgetWeb.CreateBudgetDialog do
   def handle_event("save", %{"budget" => params}, socket) do
     params = Map.put(params, "creator_id", socket.assigns.current_user.id)
 
-    with {:ok, %Budget{}} <- Tracking.create_budget(params) do
-      socket =
-        socket
-        |> put_flash(:info, "Budget created")
-        |> push_navigate(to: ~p"/budgets", replace: true)
+    socket =
+      case Tracking.create_budget(params) do
+        {:ok, %Budget{}} ->
+          socket
+          |> put_flash(:info, "Budget created")
+          |> push_navigate(to: ~p"/budgets", replace: true)
 
-      {:noreply, socket}
-    else
-      {:error, changeset} -> {:noreply, assign(socket, form: to_form(changeset))}
-    end
+        {:error, %Ecto.Changeset{} = changeset} ->
+          assign(socket, form: to_form(changeset))
+      end
+
+    {:noreply, socket}
   end
 end
