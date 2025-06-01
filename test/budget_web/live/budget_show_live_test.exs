@@ -3,14 +3,10 @@ defmodule BudgetWeb.BudgetShowLiveTest do
 
   import Phoenix.LiveViewTest
 
-  alias Budget.AccountsFixtures
-  alias Budget.TrackingFixtures
-
   setup do
-    user = AccountsFixtures.user_fixture()
-    budget = TrackingFixtures.budget_fixture(%{creator_id: user.id})
+    budget = insert(:budget)
 
-    %{user: user, budget: budget}
+    %{budget: budget, user: budget.creator}
   end
 
   describe "Show budget" do
@@ -35,7 +31,7 @@ defmodule BudgetWeb.BudgetShowLiveTest do
     end
 
     test "redirects to budget list page when budget is hidden from the user", ctx do
-      other_user = AccountsFixtures.user_fixture()
+      other_user = insert(:user)
 
       conn = log_in_user(ctx.conn, other_user)
 
@@ -45,6 +41,58 @@ defmodule BudgetWeb.BudgetShowLiveTest do
         |> follow_redirect(conn, ~p"/budgets")
 
       assert %{"error" => "Budget not found"} = conn.assigns.flash
+    end
+  end
+
+  describe "Create transaction modal" do
+    test "modal is presented", ctx do
+      conn = log_in_user(ctx.conn, ctx.user)
+      {:ok, lv, _html} = live(conn, ~p"/budgets/#{ctx.budget}/new-transaction")
+
+      assert has_element?(lv, "#create-transaction-modal")
+    end
+
+    test "creates a transaction", ctx do
+      conn = log_in_user(ctx.conn, ctx.user)
+      {:ok, lv, _html} = live(conn, ~p"/budgets/#{ctx.budget}/new-transaction")
+
+      params = params_for(:budget_transaction)
+
+      form = form(lv, "#create-transaction-modal form", %{"transaction" => params})
+
+      {:ok, _lv, html} =
+        form
+        |> render_submit()
+        |> follow_redirect(conn)
+
+      assert html =~ "Transaction created"
+      assert html =~ params.description
+    end
+
+    test "validation errors are presented when form is changed with invalid input", ctx do
+      conn = log_in_user(ctx.conn, ctx.user)
+      {:ok, lv, _html} = live(conn, ~p"/budgets/#{ctx.budget}/new-transaction")
+
+      params = params_for(:budget_transaction, amount: Decimal.new("-42"))
+
+      form = form(lv, "#create-transaction-modal form", %{"transaction" => params})
+
+      html = render_change(form)
+
+      assert html =~ "must be greater than 0"
+    end
+
+    test "validation errors are presented when form is submitted with invalid input", ctx do
+      conn = log_in_user(ctx.conn, ctx.user)
+      {:ok, lv, _html} = live(conn, ~p"/budgets/#{ctx.budget}/new-transaction")
+
+      params = params_for(:budget_transaction, amount: Decimal.new("-42"))
+
+      form = form(lv, "#create-transaction-modal form", %{"transaction" => params})
+
+      html = render_submit(form)
+
+      assert html =~ "must be greater than 0"
     end
   end
 end

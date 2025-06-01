@@ -3,19 +3,15 @@ defmodule BudgetWeb.BudgetListLiveTest do
 
   import Phoenix.LiveViewTest
 
-  alias Budget.AccountsFixtures
   alias Budget.Tracking
-  alias Budget.TrackingFixtures
 
   setup do
-    user = AccountsFixtures.user_fixture()
-
-    %{user: user}
+    %{user: insert(:user)}
   end
 
   describe "Index view" do
     test "shows budget when one exists", ctx do
-      budget = TrackingFixtures.budget_fixture(%{creator_id: ctx.user.id})
+      budget = insert(:budget, creator: ctx.user)
 
       conn = log_in_user(ctx.conn, ctx.user)
       {:ok, _lv, html} = live(conn, ~p"/budgets")
@@ -37,10 +33,9 @@ defmodule BudgetWeb.BudgetListLiveTest do
       conn = log_in_user(ctx.conn, ctx.user)
       {:ok, lv, _html} = live(conn, ~p"/budgets/new")
 
-      form =
-        form(lv, "#create-budget-modal form", %{
-          "budget" => %{"name" => ""}
-        })
+      params = params_for(:budget, name: "")
+
+      form = form(lv, "#create-budget-modal form", %{"budget" => params})
 
       html = render_change(form)
 
@@ -51,15 +46,9 @@ defmodule BudgetWeb.BudgetListLiveTest do
       conn = log_in_user(ctx.conn, ctx.user)
       {:ok, lv, _html} = live(conn, ~p"/budgets/new")
 
-      form =
-        form(lv, "#create-budget-modal form", %{
-          "budget" => %{
-            "name" => "New name",
-            "description" => "New description",
-            "start_date" => "2025-01-01",
-            "end_date" => "2025-01-31"
-          }
-        })
+      params = params_for(:budget)
+
+      form = form(lv, "#create-budget-modal form", %{"budget" => params})
 
       {:ok, _lv, html} =
         form
@@ -67,23 +56,22 @@ defmodule BudgetWeb.BudgetListLiveTest do
         |> follow_redirect(conn)
 
       assert html =~ "Budget created"
-      assert html =~ "New name"
+      assert html =~ params.name
 
       assert [created_budget] = Tracking.list_budgets()
-      assert created_budget.name == "New name"
-      assert created_budget.description == "New description"
-      assert created_budget.start_date == ~D[2025-01-01]
-      assert created_budget.end_date == ~D[2025-01-31]
+      assert created_budget.name == params.name
+      assert created_budget.description == params.description
+      assert created_budget.start_date == params.start_date
+      assert created_budget.end_date == params.end_date
     end
 
     test "validation errors are presented when form is submitted with invalid input", ctx do
       conn = log_in_user(ctx.conn, ctx.user)
       {:ok, lv, _html} = live(conn, ~p"/budgets/new")
 
-      form =
-        form(lv, "#create-budget-modal form", %{
-          "budget" => %{"name" => ""}
-        })
+      params = params_for(:budget, name: "")
+
+      form = form(lv, "#create-budget-modal form", %{"budget" => params})
 
       html = render_submit(form)
 
@@ -94,17 +82,13 @@ defmodule BudgetWeb.BudgetListLiveTest do
       conn = log_in_user(ctx.conn, ctx.user)
       {:ok, lv, _html} = live(conn, ~p"/budgets/new")
 
-      attrs =
-        TrackingFixtures.valid_budget_attributes(%{
+      params =
+        params_for(:budget,
           start_date: ~D[2025-12-31],
           end_date: ~D[2025-01-01]
-        })
-        |> Map.delete(:creator_id)
+        )
 
-      form =
-        form(lv, "#create-budget-modal form", %{
-          budget: attrs
-        })
+      form = form(lv, "#create-budget-modal form", %{"budget" => params})
 
       html = render_submit(form)
 

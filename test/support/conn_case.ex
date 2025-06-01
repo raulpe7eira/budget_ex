@@ -28,6 +28,7 @@ defmodule BudgetWeb.ConnCase do
       import Plug.Conn
       import Phoenix.ConnTest
       import BudgetWeb.ConnCase
+      import Budget.Factory
       import Plug.HTML, only: [html_escape: 1]
     end
   end
