@@ -84,8 +84,8 @@ defmodule BudgetWeb.BudgetListLiveTest do
 
       params =
         params_for(:budget,
-          start_date: ~D[2025-12-31],
-          end_date: ~D[2025-01-01]
+          start_date: ~D[2025-12-01],
+          end_date: ~D[2025-01-31]
         )
 
       form = form(lv, "#create-budget-modal form", %{"budget" => params})

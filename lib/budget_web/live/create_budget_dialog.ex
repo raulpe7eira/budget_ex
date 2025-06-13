@@ -32,10 +32,10 @@ defmodule BudgetWeb.CreateBudgetDialog do
 
     socket =
       case Tracking.create_budget(params) do
-        {:ok, %Budget{}} ->
+        {:ok, %Budget{} = budget} ->
           socket
           |> put_flash(:info, "Budget created")
-          |> push_navigate(to: ~p"/budgets", replace: true)
+          |> push_navigate(to: ~p"/budgets/#{budget}", replace: true)
 
         {:error, %Ecto.Changeset{} = changeset} ->
           assign(socket, form: to_form(changeset))
