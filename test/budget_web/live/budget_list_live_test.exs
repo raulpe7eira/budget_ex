@@ -50,10 +50,11 @@ defmodule BudgetWeb.BudgetListLiveTest do
 
       form = form(lv, "#create-budget-modal form", %{"budget" => params})
 
-      {:ok, _lv, html} =
-        form
-        |> render_submit()
-        |> follow_redirect(conn)
+      submission_result = render_submit(form)
+
+      assert [created_budget] = Tracking.list_budgets()
+
+      {:ok, _lv, html} = follow_redirect(submission_result, conn, ~p"/budgets/#{created_budget}")
 
       assert html =~ "Budget created"
       assert html =~ params.name
