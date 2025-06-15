@@ -46,6 +46,9 @@ defmodule Budget.Factory do
   def without_preloads(%Tracking.Budget{} = budget),
     do: Ecto.reset_fields(budget, [:creator])
 
+  def without_preloads(%Tracking.BudgetPeriod{} = period),
+    do: Ecto.reset_fields(period, [:budget])
+
   def without_preloads(%Tracking.BudgetTransaction{} = transaction),
     do: Ecto.reset_fields(transaction, [:budget])
 end

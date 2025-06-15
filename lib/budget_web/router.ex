@@ -71,8 +71,14 @@ defmodule BudgetWeb.Router do
       live "/budgets/:budget_id", BudgetShowLive
       live "/budgets/:budget_id/new-transaction", BudgetShowLive, :new_transaction
 
-      live "/budgets/:budget_id/transactions/:transaction_id/edit",
-           BudgetShowLive,
+      live "/budgets/:budget_id/periods/:period_id", PeriodShowLive
+
+      live "/budgets/:budget_id/periods/:period_id/new-transaction",
+           PeriodShowLive,
+           :new_transaction
+
+      live "/budgets/:budget_id/periods/:period_id/transactions/:transaction_id/edit",
+           PeriodShowLive,
            :edit_transaction
 
       live "/users/settings", UserSettingsLive, :edit

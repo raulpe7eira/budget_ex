@@ -64,10 +64,10 @@ defmodule BudgetWeb.TransactionDialog do
 
     socket =
       case Tracking.update_transaction(socket.assigns.transaction, params) do
-        {:ok, %BudgetTransaction{}} ->
+        {:ok, %BudgetTransaction{} = transaction} ->
           socket
           |> put_flash(:info, "Transaction updated")
-          |> push_navigate(to: ~p"/budgets/#{budget}", replace: true)
+          |> push_navigate(to: destination_on_success(transaction), replace: true)
 
         {:error, %Ecto.Changeset{} = changeset} ->
           assign_form(socket, changeset)
@@ -82,16 +82,21 @@ defmodule BudgetWeb.TransactionDialog do
     params = Map.put(params, "budget_id", budget.id)
 
     socket =
-      case Tracking.create_transaction(params) do
-        {:ok, %BudgetTransaction{}} ->
+      case Tracking.create_transaction(budget, params) do
+        {:ok, %BudgetTransaction{} = transaction} ->
           socket
           |> put_flash(:info, "Transaction created")
-          |> push_navigate(to: ~p"/budgets/#{budget}", replace: true)
+          |> push_navigate(to: destination_on_success(transaction), replace: true)
 
         {:error, %Ecto.Changeset{} = changeset} ->
           assign_form(socket, changeset)
       end
 
     {:noreply, socket}
+  end
+
+  defp destination_on_success(transaction) do
+    period = Tracking.period_for_transaction(transaction)
+    ~p"/budgets/#{period.budget_id}/periods/#{period.id}"
   end
 end

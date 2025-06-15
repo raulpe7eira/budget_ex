@@ -4,7 +4,7 @@ defmodule BudgetWeb.BudgetShowLive do
   alias Budget.Tracking
   alias Budget.Tracking.BudgetTransaction
 
-  def mount(%{"budget_id" => id} = params, _session, socket) when is_uuid(id) do
+  def mount(%{"budget_id" => id}, _session, socket) when is_uuid(id) do
     budget =
       Tracking.get_budget(id,
         user: socket.assigns.current_user,
@@ -14,11 +14,14 @@ defmodule BudgetWeb.BudgetShowLive do
     socket =
       if budget do
         summary = Tracking.summarize_transactions(budget)
-        transactions = Tracking.list_transactions(budget)
+        ending_balances = calculate_ending_balances(budget.periods, summary)
 
-        socket
-        |> assign(budget: budget, summary: summary, transactions: transactions)
-        |> apply_action(params)
+        assign(socket,
+          budget: budget,
+          summary: summary,
+          ending_balances: ending_balances,
+          current_period_id: current_period_id(budget.periods)
+        )
       else
         socket
         |> put_flash(:error, "Budget not found")
@@ -37,89 +40,47 @@ defmodule BudgetWeb.BudgetShowLive do
     {:ok, socket}
   end
 
-  def apply_action(%{assigns: %{live_action: :edit_transaction}} = socket, %{
-        "transaction_id" => transaction_id
-      }) do
-    transaction = Enum.find(socket.assigns.transactions, &(&1.id == transaction_id))
+  def current_period_id(periods, today \\ Date.utc_today()) do
+    current = Enum.find(periods, fn p -> not Date.before?(p.end_date, today) end)
 
-    if transaction do
-      assign(socket, transaction: transaction)
-    else
-      socket
-      |> put_flash(:error, "Transaction not found")
-      |> redirect(to: ~p"/budgets/#{socket.assigns.budget}")
+    cond do
+      Enum.empty?(periods) ->
+        nil
+
+      Date.before?(today, List.first(periods).start_date) ->
+        nil
+
+      is_nil(current) ->
+        List.last(periods).id
+
+      true ->
+        current.id
     end
   end
 
-  def apply_action(socket, _), do: socket
+  def calculate_ending_balances([], _), do: %{}
 
-  def handle_event("delete_transaction", %{"id" => transaction_id}, socket) do
-    transaction = Enum.find(socket.assigns.transactions, &(&1.id == transaction_id))
-
-    socket =
-      if transaction do
-        case Tracking.delete_transaction(transaction) do
-          {:ok, _} ->
-            socket
-            |> put_flash(:info, "Transaction deleted")
-            |> push_navigate(to: ~p"/budgets/#{socket.assigns.budget.id}", replace: true)
-
-          {:error, _} ->
-            put_flash(socket, :error, "Failed to delete transaction")
-        end
-      else
-        put_flash(socket, :error, "Transaction not found")
+  def calculate_ending_balances(periods, summary) do
+    calculate_net =
+      fn period_id ->
+        Decimal.sub(
+          get_in(summary, [period_id, :funding]) || Decimal.new("0"),
+          get_in(summary, [period_id, :spending]) || Decimal.new("0")
+        )
       end
 
-    {:noreply, socket}
+    first_period = List.first(periods)
+
+    periods
+    |> Enum.zip(Enum.drop(periods, 1))
+    |> Enum.reduce(%{first_period.id => calculate_net.(first_period.id)}, fn
+      {%{id: previous_period_id}, %{id: period_id}}, acc ->
+        balance = Decimal.add(Map.get(acc, previous_period_id), calculate_net.(period_id))
+        Map.put(acc, period_id, balance)
+    end)
   end
 
-  defp default_transaction, do: %BudgetTransaction{effective_date: Date.utc_today()}
-
-  @doc """
-  Renders a transaction amount as a currency value, considering the type of the transaction.
-
-  ## Example
-
-  <.transaction_amount transaction={%BudgetTransaction{type: :spending, amount: Decimal.new("24.05")}} />
-
-  Output:
-  <span class="tabular-nums text-red-500">-24.05</span>
-  """
-
-  attr :transaction, BudgetTransaction, required: true
-
-  def transaction_amount(%{transaction: %{type: :spending, amount: amount}}),
-    do: currency(%{amount: Decimal.negate(amount)})
-
-  def transaction_amount(%{transaction: %{type: :funding, amount: amount}}),
-    do: currency(%{amount: amount})
-
-  @doc """
-  Renders a currency amount field.
-
-  ## Example
-
-  <.currency amount={Decimal.new("246.01")} />
-
-  Output:
-  <span class="tabular-nums text-green-500">246.01</span>
-  """
-  attr :amount, Decimal, required: true
-  attr :class, :string, default: nil
-  attr :positive_class, :string, default: "text-green-500"
-  attr :negative_class, :string, default: "text-red-500"
-
-  def currency(assigns) do
-    ~H"""
-    <span class={[
-      "tabular-nums",
-      Decimal.gte?(@amount, 0) && @positive_class,
-      Decimal.lt?(@amount, 0) && @negative_class,
-      @class
-    ]}>
-      {Decimal.round(@amount, 2)}
-    </span>
-    """
+  defp default_transaction(budget) do
+    %BudgetTransaction{effective_date: Date.utc_today(), budget: budget}
   end
 end

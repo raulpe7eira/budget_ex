@@ -21,10 +21,32 @@ defmodule Budget.Tracking.BudgetTransaction do
   end
 
   @doc false
-  def changeset(budget_transaction, attrs) do
+  def changeset(budget_transaction, attrs, budget) do
     budget_transaction
     |> cast(attrs, [:effective_date, :type, :amount, :description, :budget_id])
     |> validate_required([:effective_date, :type, :amount, :description, :budget_id])
     |> validate_number(:amount, greater_than: @min_amount, less_than_or_equal_to: @max_amount)
+    |> validate_transaction_date_in_budget_range(budget)
+  end
+
+  defp validate_transaction_date_in_budget_range(cs, %Budget{
+         start_date: start_date,
+         end_date: end_date
+       }) do
+    effective_date = get_field(cs, :effective_date)
+
+    cond do
+      is_nil(effective_date) ->
+        cs
+
+      Date.before?(effective_date, start_date) ->
+        add_error(cs, :effective_date, "must be after the budget's start")
+
+      Date.after?(effective_date, end_date) ->
+        add_error(cs, :effective_date, "must be before the budget's end")
+
+      true ->
+        cs
+    end
   end
 end
