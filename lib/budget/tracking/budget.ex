@@ -15,6 +15,8 @@ defmodule Budget.Tracking.Budget do
     belongs_to :creator, Budget.Accounts.User
 
     has_many :periods, Budget.Tracking.BudgetPeriod
+    has_many :collaborators, Budget.Tracking.BudgetCollaborator
+    has_one :join_link, Budget.Tracking.BudgetJoinLink
 
     timestamps(type: :utc_datetime)
   end

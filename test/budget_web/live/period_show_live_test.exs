@@ -16,44 +16,35 @@ defmodule BudgetWeb.PeriodShowLiveTest do
   end
 
   describe "Show period" do
-    test "shows period when it exists", %{conn: conn, user: user, budget: budget, period: period} do
-      conn = log_in_user(conn, user)
-      {:ok, _lv, html} = live(conn, ~p"/budgets/#{budget}/periods/#{period}")
+    test "shows period when it exists", ctx do
+      conn = log_in_user(ctx.conn, ctx.user)
+      {:ok, _lv, html} = live(conn, ~p"/budgets/#{ctx.budget}/periods/#{ctx.period}")
 
-      assert html =~ budget.name
+      assert html =~ ctx.budget.name
     end
 
-    test "shows empty state when no transactions exist", %{
-      conn: conn,
-      user: user,
-      budget: budget,
-      period: period
-    } do
-      conn = log_in_user(conn, user)
-      {:ok, _lv, html} = live(conn, ~p"/budgets/#{budget}/periods/#{period}")
+    test "shows empty state when no transactions exist", ctx do
+      conn = log_in_user(ctx.conn, ctx.user)
+      {:ok, _lv, html} = live(conn, ~p"/budgets/#{ctx.budget}/periods/#{ctx.period}")
 
       assert html =~ "No transactions yet"
     end
 
-    test "shows transaction when it exists", %{
-      conn: conn,
-      user: user,
-      budget: budget,
-      period: period
-    } do
-      transaction = insert(:budget_transaction, budget: budget, effective_date: ~D[2025-01-15])
+    test "shows transaction when it exists", ctx do
+      transaction =
+        insert(:budget_transaction, budget: ctx.budget, effective_date: ~D[2025-01-15])
 
-      conn = log_in_user(conn, user)
-      {:ok, _lv, html} = live(conn, ~p"/budgets/#{budget}/periods/#{period}")
+      conn = log_in_user(ctx.conn, ctx.user)
+      {:ok, _lv, html} = live(conn, ~p"/budgets/#{ctx.budget}/periods/#{ctx.period}")
 
       assert html =~ transaction.description
     end
 
-    test "redirects to budget list page when period does not exist", %{conn: conn, user: user} do
+    test "redirects to budget list page when period does not exist", ctx do
       fake_budget_id = Ecto.UUID.generate()
       fake_period_id = Ecto.UUID.generate()
 
-      conn = log_in_user(conn, user)
+      conn = log_in_user(ctx.conn, ctx.user)
 
       {:ok, conn} =
         live(conn, ~p"/budgets/#{fake_budget_id}/periods/#{fake_period_id}")
@@ -62,11 +53,11 @@ defmodule BudgetWeb.PeriodShowLiveTest do
       assert %{"error" => "Not found"} = conn.assigns.flash
     end
 
-    test "redirects to budget list page when period ID is not a uuid", %{conn: conn, user: user} do
+    test "redirects to budget list page when period ID is not a uuid", ctx do
       fake_budget_id = Ecto.UUID.generate()
       fake_period_id = "invalid_uuid"
 
-      conn = log_in_user(conn, user)
+      conn = log_in_user(ctx.conn, ctx.user)
 
       {:ok, conn} =
         live(conn, ~p"/budgets/#{fake_budget_id}/periods/#{fake_period_id}")
@@ -75,11 +66,11 @@ defmodule BudgetWeb.PeriodShowLiveTest do
       assert %{"error" => "Not found"} = conn.assigns.flash
     end
 
-    test "redirects to budget list page when budget ID is not a uuid", %{conn: conn, user: user} do
+    test "redirects to budget list page when budget ID is not a uuid", ctx do
       fake_budget_id = "invalid_uuid"
       fake_period_id = Ecto.UUID.generate()
 
-      conn = log_in_user(conn, user)
+      conn = log_in_user(ctx.conn, ctx.user)
 
       {:ok, conn} =
         live(conn, ~p"/budgets/#{fake_budget_id}/periods/#{fake_period_id}")
@@ -88,17 +79,13 @@ defmodule BudgetWeb.PeriodShowLiveTest do
       assert %{"error" => "Not found"} = conn.assigns.flash
     end
 
-    test "redirects to budget list page when budget is hidden from the user", %{
-      conn: conn,
-      budget: budget,
-      period: period
-    } do
+    test "redirects to budget list page when budget is hidden from the user", ctx do
       other_user = insert(:user)
 
-      conn = log_in_user(conn, other_user)
+      conn = log_in_user(ctx.conn, other_user)
 
       {:ok, conn} =
-        live(conn, ~p"/budgets/#{budget}/periods/#{period}")
+        live(conn, ~p"/budgets/#{ctx.budget}/periods/#{ctx.period}")
         |> follow_redirect(conn, ~p"/budgets")
 
       assert %{"error" => "Not found"} = conn.assigns.flash
@@ -106,21 +93,20 @@ defmodule BudgetWeb.PeriodShowLiveTest do
   end
 
   describe "Create transaction modal" do
-    test "modal is presented", %{conn: conn, user: user, budget: budget, period: period} do
-      conn = log_in_user(conn, user)
-      {:ok, lv, _html} = live(conn, ~p"/budgets/#{budget}/periods/#{period}/new-transaction")
+    test "modal is presented", ctx do
+      conn = log_in_user(ctx.conn, ctx.user)
+
+      {:ok, lv, _html} =
+        live(conn, ~p"/budgets/#{ctx.budget}/periods/#{ctx.period}/new-transaction")
 
       assert has_element?(lv, "#transaction-modal")
     end
 
-    test "creates a transaction", %{
-      conn: conn,
-      user: user,
-      budget: budget,
-      period: period
-    } do
-      conn = log_in_user(conn, user)
-      {:ok, lv, _html} = live(conn, ~p"/budgets/#{budget}/periods/#{period}/new-transaction")
+    test "creates a transaction", ctx do
+      conn = log_in_user(ctx.conn, ctx.user)
+
+      {:ok, lv, _html} =
+        live(conn, ~p"/budgets/#{ctx.budget}/periods/#{ctx.period}/new-transaction")
 
       params = params_for(:budget_transaction)
 
@@ -145,52 +131,41 @@ defmodule BudgetWeb.PeriodShowLiveTest do
       %{transaction: transaction}
     end
 
-    test "shows edit transaction modal", %{
-      conn: conn,
-      user: user,
-      budget: budget,
-      period: period,
-      transaction: transaction
-    } do
-      conn = log_in_user(conn, user)
+    test "shows edit transaction modal", ctx do
+      conn = log_in_user(ctx.conn, ctx.user)
 
       {:ok, lv, _html} =
-        live(conn, ~p"/budgets/#{budget}/periods/#{period}/transactions/#{transaction}/edit")
+        live(
+          conn,
+          ~p"/budgets/#{ctx.budget}/periods/#{ctx.period}/transactions/#{ctx.transaction}/edit"
+        )
 
       assert has_element?(lv, "#transaction-modal")
 
       assert has_element?(
                lv,
-               ~s|#transaction-modal input[name='transaction[description]'][value='#{transaction.description}']|
+               ~s|#transaction-modal input[name='transaction[description]'][value='#{ctx.transaction.description}']|
              )
     end
 
-    test "redirects on invalid transaction id", %{
-      conn: conn,
-      user: user,
-      budget: budget,
-      period: period
-    } do
-      conn = log_in_user(conn, user)
+    test "redirects on invalid transaction id", ctx do
+      conn = log_in_user(ctx.conn, ctx.user)
 
       {:ok, conn} =
-        live(conn, ~p"/budgets/#{budget}/periods/#{period}/transactions/invalid/edit")
-        |> follow_redirect(conn, ~p"/budgets/#{budget}/periods/#{period}")
+        live(conn, ~p"/budgets/#{ctx.budget}/periods/#{ctx.period}/transactions/invalid/edit")
+        |> follow_redirect(conn, ~p"/budgets/#{ctx.budget}/periods/#{ctx.period}")
 
       assert %{"error" => "Transaction not found"} = conn.assigns.flash
     end
 
-    test "validation errors are presented when form is changed with invalid input", %{
-      conn: conn,
-      user: user,
-      budget: budget,
-      period: period,
-      transaction: transaction
-    } do
-      conn = log_in_user(conn, user)
+    test "validation errors are presented when form is changed with invalid input", ctx do
+      conn = log_in_user(ctx.conn, ctx.user)
 
       {:ok, lv, _html} =
-        live(conn, ~p"/budgets/#{budget}/periods/#{period}/transactions/#{transaction}/edit")
+        live(
+          conn,
+          ~p"/budgets/#{ctx.budget}/periods/#{ctx.period}/transactions/#{ctx.transaction}/edit"
+        )
 
       params = params_for(:budget_transaction, amount: Decimal.new("-42"))
 
@@ -204,17 +179,14 @@ defmodule BudgetWeb.PeriodShowLiveTest do
       assert html =~ "must be greater than 0"
     end
 
-    test "validation errors are presented when form is submitted with invalid input", %{
-      conn: conn,
-      user: user,
-      budget: budget,
-      period: period,
-      transaction: transaction
-    } do
-      conn = log_in_user(conn, user)
+    test "validation errors are presented when form is submitted with invalid input", ctx do
+      conn = log_in_user(ctx.conn, ctx.user)
 
       {:ok, lv, _html} =
-        live(conn, ~p"/budgets/#{budget}/periods/#{period}/transactions/#{transaction}/edit")
+        live(
+          conn,
+          ~p"/budgets/#{ctx.budget}/periods/#{ctx.period}/transactions/#{ctx.transaction}/edit"
+        )
 
       params = params_for(:budget_transaction, amount: Decimal.new("-42"))
 
@@ -228,17 +200,14 @@ defmodule BudgetWeb.PeriodShowLiveTest do
       assert html =~ "must be greater than 0"
     end
 
-    test "updates transaction", %{
-      conn: conn,
-      user: user,
-      budget: budget,
-      period: period,
-      transaction: transaction
-    } do
-      conn = log_in_user(conn, user)
+    test "updates transaction", ctx do
+      conn = log_in_user(ctx.conn, ctx.user)
 
       {:ok, lv, _html} =
-        live(conn, ~p"/budgets/#{budget}/periods/#{period}/transactions/#{transaction}/edit")
+        live(
+          conn,
+          ~p"/budgets/#{ctx.budget}/periods/#{ctx.period}/transactions/#{ctx.transaction}/edit"
+        )
 
       new_amount = (:rand.uniform(5000) / 100) |> Decimal.from_float()
 
@@ -255,7 +224,7 @@ defmodule BudgetWeb.PeriodShowLiveTest do
 
       assert html =~ "Transaction updated"
 
-      transaction = Repo.get(BudgetTransaction, transaction.id)
+      transaction = Repo.get(BudgetTransaction, ctx.transaction.id)
       assert transaction.amount == new_amount
     end
   end
@@ -267,29 +236,23 @@ defmodule BudgetWeb.PeriodShowLiveTest do
       %{transaction: transaction}
     end
 
-    test "deletes transaction", %{
-      conn: conn,
-      user: user,
-      budget: budget,
-      period: period,
-      transaction: transaction
-    } do
-      conn = log_in_user(conn, user)
-      {:ok, lv, html} = live(conn, ~p"/budgets/#{budget}/periods/#{period}")
+    test "deletes transaction", ctx do
+      conn = log_in_user(ctx.conn, ctx.user)
+      {:ok, lv, html} = live(conn, ~p"/budgets/#{ctx.budget}/periods/#{ctx.period}")
 
-      assert html =~ transaction.description
+      assert html =~ ctx.transaction.description
 
       delete_button =
         element(
           lv,
-          ~s|button[phx-click="delete_transaction"][phx-value-id="#{transaction.id}"]|
+          ~s|button[phx-click="delete_transaction"][phx-value-id="#{ctx.transaction.id}"]|
         )
 
       {:ok, _lv, html} =
         render_click(delete_button)
-        |> follow_redirect(conn, ~p"/budgets/#{budget}/periods/#{period}")
+        |> follow_redirect(conn, ~p"/budgets/#{ctx.budget}/periods/#{ctx.period}")
 
-      refute html =~ transaction.description
+      refute html =~ ctx.transaction.description
       assert html =~ "Transaction deleted"
     end
   end

@@ -76,6 +76,21 @@ defmodule Budget.TrackingTest do
       assert Tracking.list_budgets(user: budget.creator) == [without_preloads(budget)]
     end
 
+    test "list_budgets/1 includes budgets where the user is a collaborator" do
+      user = insert(:user)
+      budget = insert(:budget, creator: user)
+      collaborating_budget = insert(:budget)
+      other_budget = insert(:budget)
+
+      insert(:budget_collaborator, budget: collaborating_budget, user: user)
+
+      budgets = Tracking.list_budgets(user: user)
+
+      assert without_preloads(budget) in budgets
+      assert without_preloads(collaborating_budget) in budgets
+      refute other_budget in budgets
+    end
+
     test "get_budget/1 returns the budget with given id" do
       budget = insert(:budget)
 
@@ -340,6 +355,16 @@ defmodule Budget.TrackingTest do
              ) == without_preloads(period)
     end
 
+    test "get_budget_period/2 returns the budget_period with given id when the user is a collaborator" do
+      budget_period = insert(:budget_period)
+      user = insert(:user)
+
+      insert(:budget_collaborator, budget: budget_period.budget, user: user)
+
+      assert Tracking.get_budget_period(budget_period.id, user: user) ==
+               without_preloads(budget_period)
+    end
+
     test "get_budget_period/2 returns nil when the user doesn't have access to the period's budget" do
       period = insert(:budget_period)
       user = insert(:user)
@@ -363,6 +388,15 @@ defmodule Budget.TrackingTest do
       assert result.budget == budget
     end
 
+    test "get_budget_period/2 returns nil with given id when user doesn't match" do
+      budget_period = insert(:budget_period)
+      other_user = insert(:user)
+
+      _unrelated_collaborator = insert(:budget_collaborator, budget: budget_period.budget)
+
+      assert is_nil(Tracking.get_budget_period(budget_period.id, user: other_user))
+    end
+
     test "period_for_transaction/1 returns the period overlapping with the provided transaction" do
       budget = insert(:budget)
 
@@ -383,6 +417,75 @@ defmodule Budget.TrackingTest do
       transaction = insert(:budget_transaction, budget: budget, effective_date: ~D[2025-02-05])
 
       assert Tracking.period_for_transaction(transaction) == without_preloads(february)
+    end
+  end
+
+  describe "budget_collaborators" do
+    test "creates a collaborator given a budget and a user" do
+      budget = insert(:budget)
+      other_user = insert(:user)
+
+      assert {:ok, collaborator} = Tracking.ensure_budget_collaborator(budget, other_user)
+
+      budget = Repo.preload(budget, :collaborators)
+
+      assert budget.collaborators == [collaborator]
+    end
+
+    test "no-ops given an existing collaborator" do
+      budget = insert(:budget)
+      collaborator = insert(:budget_collaborator, budget: budget)
+
+      assert {:ok, collaborator} =
+               Tracking.ensure_budget_collaborator(budget, collaborator.user)
+
+      budget = Repo.preload(budget, :collaborators)
+
+      assert budget.collaborators == [collaborator]
+    end
+
+    test "remove_budget_collaborator deletes a collaborator" do
+      collaborator = insert(:budget_collaborator)
+
+      assert Tracking.remove_budget_collaborator(collaborator)
+
+      budget = Repo.preload(collaborator.budget, :collaborators, force: true)
+
+      assert budget.collaborators == []
+    end
+  end
+
+  describe "budget_join_links" do
+    alias Budget.Tracking.BudgetJoinLink
+
+    setup do
+      budget = insert(:budget)
+      %{budget: budget}
+    end
+
+    test "creates a join link", ctx do
+      assert {:ok, %BudgetJoinLink{} = join_link} = Tracking.ensure_join_link(ctx.budget)
+      assert join_link.budget_id == ctx.budget.id
+    end
+
+    test "returns existing join link if it already exists", ctx do
+      existing_link = insert(:budget_join_link, budget: ctx.budget)
+
+      assert {:ok, %BudgetJoinLink{} = join_link} = Tracking.ensure_join_link(ctx.budget)
+      assert join_link.budget_id == ctx.budget.id
+      assert join_link.code == existing_link.code
+    end
+
+    test "gets budget by join code", ctx do
+      join_link = insert(:budget_join_link, budget: ctx.budget)
+      _other_irrelevant_join_link = insert(:budget_join_link)
+
+      assert %Tracking.Budget{} = result = Tracking.get_budget_by_join_code(join_link.code)
+      assert result.id == ctx.budget.id
+    end
+
+    test "returns nil without matching join code" do
+      assert is_nil(Tracking.get_budget_by_join_code("invalid"))
     end
   end
 end

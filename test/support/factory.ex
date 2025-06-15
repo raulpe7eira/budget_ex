@@ -30,6 +30,19 @@ defmodule Budget.Factory do
     }
   end
 
+  def budget_collaborator_factory do
+    %Tracking.BudgetCollaborator{
+      user: build(:user),
+      budget: build(:budget)
+    }
+  end
+
+  def budget_join_link_factory do
+    %Tracking.BudgetJoinLink{
+      budget: build(:budget)
+    }
+  end
+
   def budget_transaction_factory do
     %Tracking.BudgetTransaction{
       effective_date: ~D[2025-01-01],

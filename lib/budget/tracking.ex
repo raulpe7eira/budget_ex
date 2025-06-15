@@ -2,8 +2,11 @@ defmodule Budget.Tracking do
   import Ecto.Query, warn: false
 
   alias Budget.Repo
+  alias Budget.Accounts.User
   alias Budget.Tracking.BudgetTransaction
   alias Budget.Tracking.BudgetPeriod
+  alias Budget.Tracking.BudgetJoinLink
+  alias Budget.Tracking.BudgetCollaborator
   alias Budget.Tracking.Budget
 
   def create_budget(attrs \\ %{}) do
@@ -24,6 +27,12 @@ defmodule Budget.Tracking do
     |> Repo.get(id)
   end
 
+  def get_budget_by_join_code(code, criteria \\ []) when is_list(criteria) do
+    [{:join_link_code, code} | criteria]
+    |> budget_query()
+    |> Repo.one()
+  end
+
   def change_budget(budget, attrs \\ %{}) do
     Budget.changeset(budget, attrs)
   end
@@ -33,10 +42,18 @@ defmodule Budget.Tracking do
 
     Enum.reduce(criteria, query, fn
       {:user, user}, query ->
-        from b in query, where: b.creator_id == ^user.id
+        from b in query,
+          left_join: c in assoc(b, :collaborators),
+          where: b.creator_id == ^user.id or c.user_id == ^user.id,
+          distinct: true
 
       {:preload, bindings}, query ->
         preload(query, ^bindings)
+
+      {:join_link_code, code}, query ->
+        from b in query,
+          join: l in assoc(b, :join_link),
+          where: l.code == ^code
 
       _, query ->
         query
@@ -66,7 +83,9 @@ defmodule Budget.Tracking do
       {:user, user}, query ->
         from p in query,
           join: b in assoc(p, :budget),
-          where: b.creator_id == ^user.id
+          left_join: c in assoc(b, :collaborators),
+          where: b.creator_id == ^user.id or c.user_id == ^user.id,
+          distinct: true
 
       {:budget_id, budget_id}, query ->
         from p in query, where: p.budget_id == ^budget_id
@@ -169,5 +188,28 @@ defmodule Budget.Tracking do
           Map.put(existing, type, amount)
         end)
     end)
+  end
+
+  def ensure_join_link(%Budget{} = budget) do
+    %BudgetJoinLink{}
+    |> BudgetJoinLink.changeset(%{budget_id: budget.id})
+    |> Repo.insert(
+      conflict_target: :budget_id,
+      on_conflict: {:replace, [:updated_at]},
+      returning: true
+    )
+  end
+
+  def ensure_budget_collaborator(%Budget{id: budget_id}, %User{id: user_id}) do
+    %BudgetCollaborator{}
+    |> BudgetCollaborator.changeset(%{budget_id: budget_id, user_id: user_id})
+    |> Repo.insert(
+      conflict_target: [:budget_id, :user_id],
+      on_conflict: {:replace, [:updated_at]}
+    )
+  end
+
+  def remove_budget_collaborator(%BudgetCollaborator{} = collaborator) do
+    Repo.delete(collaborator)
   end
 end

@@ -3,6 +3,8 @@ defmodule BudgetWeb.BudgetShowLiveTest do
 
   import Phoenix.LiveViewTest
 
+  alias Budget.Repo
+  alias Budget.Tracking.BudgetCollaborator
   alias BudgetWeb.BudgetShowLive
 
   setup do
@@ -39,10 +41,10 @@ defmodule BudgetWeb.BudgetShowLiveTest do
       assert %{"error" => "Budget not found"} = conn.assigns.flash
     end
 
-    test "redirects to budget list page when budget ID is not a uuid", %{conn: conn, user: user} do
+    test "redirects to budget list page when budget ID is not a uuid", ctx do
       fake_budget_id = "invalid_uuid"
 
-      conn = log_in_user(conn, user)
+      conn = log_in_user(ctx.conn, ctx.user)
 
       {:ok, conn} =
         live(conn, ~p"/budgets/#{fake_budget_id}")
@@ -117,6 +119,100 @@ defmodule BudgetWeb.BudgetShowLiveTest do
     end
   end
 
+  describe "Collaborators modal" do
+    setup %{user: user} do
+      budget = insert(:budget, creator: user)
+
+      %{budget: budget}
+    end
+
+    test "redirects to login page when not signed in", ctx do
+      assert {:error, redirect} = live(ctx.conn, ~p"/budgets/#{ctx.budget}/collaborators")
+
+      assert {:redirect, %{to: path, flash: flash}} = redirect
+      assert path == ~p"/users/log_in"
+      assert %{"error" => "You must log in to access this page."} = flash
+    end
+
+    test "modal is presented", ctx do
+      conn = log_in_user(ctx.conn, ctx.user)
+      {:ok, lv, html} = live(conn, ~p"/budgets/#{ctx.budget}/collaborators")
+
+      assert has_element?(lv, "#collaborators-modal")
+      assert html =~ "Manage Access"
+      assert html =~ ctx.user.name
+    end
+
+    test "modal shows collaborators", ctx do
+      collaborators = insert_list(3, :budget_collaborator, budget: ctx.budget)
+
+      conn = log_in_user(ctx.conn, ctx.user)
+      {:ok, _lv, html} = live(conn, ~p"/budgets/#{ctx.budget}/collaborators")
+
+      assert html =~ "Collaborators (3)"
+      assert html =~ ctx.user.name
+
+      for collaborator <- collaborators do
+        assert html =~ collaborator.user.name
+        assert html =~ collaborator.user.email
+      end
+    end
+
+    test "removes collaborator when clicked", ctx do
+      [collaborator_one, collaborator_two] =
+        insert_list(2, :budget_collaborator, budget: ctx.budget)
+
+      conn = log_in_user(ctx.conn, ctx.user)
+      {:ok, lv, _html} = live(conn, ~p"/budgets/#{ctx.budget}/collaborators")
+
+      remove_button =
+        element(
+          lv,
+          "button[phx-click='remove-collaborator'][phx-value-user-id='#{collaborator_two.user_id}']"
+        )
+
+      html = render_click(remove_button)
+
+      assert html =~ collaborator_one.user.name
+      refute html =~ collaborator_two.user.name
+    end
+
+    test "removes, informs, and redirects collaborator when they remove self", ctx do
+      collaborator = insert(:budget_collaborator, budget: ctx.budget)
+
+      conn = log_in_user(ctx.conn, collaborator.user)
+      {:ok, lv, _html} = live(conn, ~p"/budgets/#{ctx.budget}/collaborators")
+
+      remove_button =
+        element(
+          lv,
+          "button[phx-click='remove-collaborator'][phx-value-user-id='#{collaborator.user_id}']"
+        )
+
+      {:ok, _lv, html} = render_click(remove_button) |> follow_redirect(conn, ~p"/budgets")
+
+      assert html =~ "You have been removed from the budget"
+
+      # Assert collaborator was removed
+      refute Repo.get_by(BudgetCollaborator,
+               user_id: collaborator.user_id,
+               budget_id: ctx.budget.id
+             )
+    end
+
+    test "changes text to copied on click of copy link button", ctx do
+      conn = log_in_user(ctx.conn, ctx.user)
+      {:ok, lv, _html} = live(conn, ~p"/budgets/#{ctx.budget}/collaborators")
+
+      copy_button = element(lv, "button", "Copy Link")
+
+      render_click(copy_button)
+
+      refute has_element?(lv, "button", "Copy Link")
+      assert has_element?(lv, "button", "Copied")
+    end
+  end
+
   describe "current_period_id/2" do
     setup do
       january_2025 = build(:budget_period, start_date: ~D[2025-01-01], end_date: ~D[2025-01-31])
@@ -130,26 +226,26 @@ defmodule BudgetWeb.BudgetShowLiveTest do
       assert BudgetShowLive.current_period_id([], ~D[2024-12-31]) == nil
     end
 
-    test "returns nil if first period hasn't started yet", %{periods: periods} do
-      assert BudgetShowLive.current_period_id(periods, ~D[2024-12-31]) == nil
+    test "returns nil if first period hasn't started yet", ctx do
+      assert BudgetShowLive.current_period_id(ctx.periods, ~D[2024-12-31]) == nil
     end
 
-    test "returns the january if date is in january", %{periods: periods} do
-      [january | _rest] = periods
+    test "returns the january if date is in january", ctx do
+      [january | _rest] = ctx.periods
 
-      assert BudgetShowLive.current_period_id(periods, ~D[2025-01-15]) == january.id
+      assert BudgetShowLive.current_period_id(ctx.periods, ~D[2025-01-15]) == january.id
     end
 
-    test "returns the february if date is february first", %{periods: periods} do
-      [_january, february, _march] = periods
+    test "returns the february if date is february first", ctx do
+      [_january, february, _march] = ctx.periods
 
-      assert BudgetShowLive.current_period_id(periods, ~D[2025-02-01]) == february.id
+      assert BudgetShowLive.current_period_id(ctx.periods, ~D[2025-02-01]) == february.id
     end
 
-    test "returns last period if date is after last period", %{periods: periods} do
-      [_january, _february, march] = periods
+    test "returns last period if date is after last period", ctx do
+      [_january, _february, march] = ctx.periods
 
-      assert BudgetShowLive.current_period_id(periods, ~D[2025-04-01]) == march.id
+      assert BudgetShowLive.current_period_id(ctx.periods, ~D[2025-04-01]) == march.id
     end
   end
 
