@@ -68,7 +68,8 @@ defmodule Budget.MixProject do
       {:bandit, "~> 1.5"},
       {:ex_machina, "~> 2.8.0", only: :test},
       {:excoveralls, "~> 0.18", only: :test},
-      {:nanoid, "~> 2.1.0"}
+      {:nanoid, "~> 2.1.0"},
+      {:ex_doc, "~> 0.35", only: :dev, runtime: false}
     ]
   end
 
