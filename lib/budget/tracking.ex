@@ -9,12 +9,6 @@ defmodule Budget.Tracking do
   alias Budget.Tracking.BudgetCollaborator
   alias Budget.Tracking.Budget
 
-  def create_budget(attrs \\ %{}) do
-    %Budget{}
-    |> Budget.changeset(attrs)
-    |> Repo.insert()
-  end
-
   def list_budgets(criteria \\ []) when is_list(criteria) do
     criteria
     |> budget_query()
@@ -31,10 +25,6 @@ defmodule Budget.Tracking do
     [{:join_link_code, code} | criteria]
     |> budget_query()
     |> Repo.one()
-  end
-
-  def change_budget(budget, attrs \\ %{}) do
-    Budget.changeset(budget, attrs)
   end
 
   defp budget_query(criteria) do
