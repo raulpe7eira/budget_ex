@@ -35,7 +35,7 @@ defmodule BudgetWeb.BudgetListLiveTest do
 
       params = params_for(:budget, name: "")
 
-      form = form(lv, "#create-budget-modal form", %{"budget" => params})
+      form = form(lv, "#create-budget-modal form", %{"create_budget" => %{"budget" => params}})
 
       html = render_change(form)
 
@@ -48,7 +48,7 @@ defmodule BudgetWeb.BudgetListLiveTest do
 
       params = params_for(:budget)
 
-      form = form(lv, "#create-budget-modal form", %{"budget" => params})
+      form = form(lv, "#create-budget-modal form", %{"create_budget" => %{"budget" => params}})
 
       submission_result = render_submit(form)
 
@@ -66,13 +66,71 @@ defmodule BudgetWeb.BudgetListLiveTest do
       assert created_budget.end_date == params.end_date
     end
 
+    test "creates a budget with period funding amount", ctx do
+      conn = log_in_user(ctx.conn, ctx.user)
+      {:ok, lv, _html} = live(conn, ~p"/budgets/new")
+
+      params =
+        params_for(:budget,
+          name: "Funded Budget",
+          start_date: "2025-01-01",
+          end_date: "2025-02-28"
+        )
+
+      form =
+        form(lv, "#create-budget-modal form", %{
+          "create_budget" => %{
+            "period_funding_amount" => "1000.00",
+            "budget" => params
+          }
+        })
+
+      submission_result = render_submit(form)
+
+      assert [created_budget] = Tracking.list_budgets()
+      assert created_budget.name == "Funded Budget"
+
+      assert [january_funding, february_funding] = Tracking.list_transactions(created_budget)
+      assert january_funding.type == :funding
+      assert january_funding.amount == Decimal.new("1000.00")
+      assert january_funding.effective_date == ~D[2025-01-01]
+
+      assert february_funding.type == :funding
+      assert february_funding.amount == Decimal.new("1000.00")
+      assert february_funding.effective_date == ~D[2025-02-01]
+
+      {:ok, _lv, html} = follow_redirect(submission_result, conn, ~p"/budgets/#{created_budget}")
+
+      assert html =~ "Budget created"
+      assert html =~ "Funded Budget"
+    end
+
+    test "validation errors are presented when period funding amount is negative", ctx do
+      conn = log_in_user(ctx.conn, ctx.user)
+      {:ok, lv, _html} = live(conn, ~p"/budgets/new")
+
+      params = params_for(:budget)
+
+      form =
+        form(lv, "#create-budget-modal form", %{
+          "create_budget" => %{
+            "period_funding_amount" => "-100",
+            "budget" => params
+          }
+        })
+
+      html = render_change(form)
+
+      assert html =~ "must be greater than or equal to 0"
+    end
+
     test "validation errors are presented when form is submitted with invalid input", ctx do
       conn = log_in_user(ctx.conn, ctx.user)
       {:ok, lv, _html} = live(conn, ~p"/budgets/new")
 
       params = params_for(:budget, name: "")
 
-      form = form(lv, "#create-budget-modal form", %{"budget" => params})
+      form = form(lv, "#create-budget-modal form", %{"create_budget" => %{"budget" => params}})
 
       html = render_submit(form)
 
@@ -89,7 +147,7 @@ defmodule BudgetWeb.BudgetListLiveTest do
           end_date: ~D[2025-01-31]
         )
 
-      form = form(lv, "#create-budget-modal form", %{"budget" => params})
+      form = form(lv, "#create-budget-modal form", %{"create_budget" => %{"budget" => params}})
 
       html = render_submit(form)
 
