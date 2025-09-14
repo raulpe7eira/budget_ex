@@ -1,11 +1,11 @@
 import Config
 
 # Configure your database
-config :budget, Budget.Repo,
+config :budget_ex, BudgetEx.Repo,
   username: "postgres",
   password: "postgres",
   hostname: "localhost",
-  database: "budget_dev",
+  database: "budget_ex_dev",
   stacktrace: true,
   show_sensitive_data_on_connection_error: true,
   pool_size: 10
@@ -17,7 +17,7 @@ config :budget, Budget.Repo,
 # watchers to your application. For example, we can use it
 # to bundle .js and .css sources.
 # Binding to loopback ipv4 address prevents access from other machines.
-config :budget, BudgetWeb.Endpoint,
+config :budget_ex, BudgetExWeb.Endpoint,
   # Change to `ip: {0, 0, 0, 0}` to allow access from other machines.
   http: [ip: {127, 0, 0, 1}, port: 4000],
   check_origin: false,
@@ -25,8 +25,8 @@ config :budget, BudgetWeb.Endpoint,
   debug_errors: true,
   secret_key_base: "usxZpWQgsCeP8Io7w97oBv2+kDoqrLJ2cSBv0azbWCAamuoi3JWXuuHkx13JQ+62",
   watchers: [
-    esbuild: {Esbuild, :install_and_run, [:budget, ~w(--sourcemap=inline --watch)]},
-    tailwind: {Tailwind, :install_and_run, [:budget, ~w(--watch)]}
+    esbuild: {Esbuild, :install_and_run, [:budget_ex, ~w(--sourcemap=inline --watch)]},
+    tailwind: {Tailwind, :install_and_run, [:budget_ex, ~w(--watch)]}
   ]
 
 # ## SSL Support
@@ -53,17 +53,17 @@ config :budget, BudgetWeb.Endpoint,
 # different ports.
 
 # Watch static and templates for browser reloading.
-config :budget, BudgetWeb.Endpoint,
+config :budget_ex, BudgetExWeb.Endpoint,
   live_reload: [
     patterns: [
       ~r"priv/static/(?!uploads/).*(js|css|png|jpeg|jpg|gif|svg)$",
       ~r"priv/gettext/.*(po)$",
-      ~r"lib/budget_web/(controllers|live|components)/.*(ex|heex)$"
+      ~r"lib/budget_ex_web/(controllers|live|components)/.*(ex|heex)$"
     ]
   ]
 
 # Enable dev routes for dashboard and mailbox
-config :budget, dev_routes: true
+config :budget_ex, dev_routes: true
 
 # Do not include metadata nor timestamps in development logs
 config :logger, :console, format: "[$level] $message\n"

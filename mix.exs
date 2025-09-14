@@ -1,9 +1,9 @@
-defmodule Budget.MixProject do
+defmodule BudgetEx.MixProject do
   use Mix.Project
 
   def project do
     [
-      app: :budget,
+      app: :budget_ex,
       version: "0.1.0",
       elixir: "~> 1.14",
       elixirc_paths: elixirc_paths(Mix.env()),
@@ -25,7 +25,7 @@ defmodule Budget.MixProject do
   # Type `mix help compile.app` for more information.
   def application do
     [
-      mod: {Budget.Application, []},
+      mod: {BudgetEx.Application, []},
       extra_applications: [:logger, :runtime_tools]
     ]
   end
@@ -39,6 +39,7 @@ defmodule Budget.MixProject do
   # Type `mix help deps` for examples and options.
   defp deps do
     [
+      {:igniter, "~> 0.6", only: [:dev, :test]},
       {:argon2_elixir, "~> 3.0"},
       {:phoenix, "~> 1.7.20"},
       {:phoenix_ecto, "~> 4.5"},
@@ -69,7 +70,8 @@ defmodule Budget.MixProject do
       {:ex_machina, "~> 2.8.0", only: :test},
       {:excoveralls, "~> 0.18", only: :test},
       {:nanoid, "~> 2.1.0"},
-      {:ex_doc, "~> 0.35", only: :dev, runtime: false}
+      {:ex_doc, "~> 0.35", only: :dev, runtime: false},
+      {:tidewave, "~> 0.4", only: :dev}
     ]
   end
 
@@ -86,10 +88,10 @@ defmodule Budget.MixProject do
       "ecto.reset": ["ecto.drop", "ecto.setup"],
       test: ["ecto.create --quiet", "ecto.migrate --quiet", "test"],
       "assets.setup": ["tailwind.install --if-missing", "esbuild.install --if-missing"],
-      "assets.build": ["tailwind budget", "esbuild budget"],
+      "assets.build": ["tailwind budget_ex", "esbuild budget_ex"],
       "assets.deploy": [
-        "tailwind budget --minify",
-        "esbuild budget --minify",
+        "tailwind budget_ex --minify",
+        "esbuild budget_ex --minify",
         "phx.digest"
       ]
     ]

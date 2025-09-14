@@ -1,7 +1,7 @@
-defmodule Budget.AccountsFixtures do
+defmodule BudgetEx.AccountsFixtures do
   @moduledoc """
   This module defines test helpers for creating
-  entities via the `Budget.Accounts` context.
+  entities via the `BudgetEx.Accounts` context.
   """
 
   def unique_user_name, do: "Raul #{System.unique_integer()}"
@@ -20,7 +20,7 @@ defmodule Budget.AccountsFixtures do
     {:ok, user} =
       attrs
       |> valid_user_attributes()
-      |> Budget.Accounts.register_user()
+      |> BudgetEx.Accounts.register_user()
 
     user
   end

@@ -1,4 +1,4 @@
-defmodule Budget.Repo.Migrations.CreateBudgetJoinLinks do
+defmodule BudgetEx.Repo.Migrations.CreateBudgetJoinLinks do
   use Ecto.Migration
 
   def change do

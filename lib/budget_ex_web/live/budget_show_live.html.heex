@@ -1,0 +1,151 @@
+<.modal
+  :if={@live_action == :new_transaction}
+  id="transaction-modal"
+  on_cancel={JS.navigate(~p"/budgets/#{@budget}", replace: true)}
+  show
+>
+  <.live_component
+    module={BudgetExWeb.TransactionDialog}
+    id="transaction"
+    budget={@budget}
+    transaction={assigns[:transaction] || default_transaction(@budget)}
+    action={@live_action}
+  />
+</.modal>
+
+<.modal
+  :if={@live_action == :collaborators}
+  id="collaborators-modal"
+  on_cancel={JS.navigate(~p"/budgets/#{@budget}", replace: true)}
+  show
+>
+  <.live_component
+    module={BudgetExWeb.CollaboratorsDialog}
+    id="collaborators-dialog"
+    budget={@budget}
+    current_user={@current_user}
+    join_link={@join_link}
+  />
+</.modal>
+
+<div class="mb-6">
+  <.link
+    navigate={~p"/budgets"}
+    class="text-sm font-semibold leading-6 text-gray-900 hover:text-gray-700"
+  >
+    <.icon name="hero-arrow-left-solid" class="h-3 w-3" /> Back to Budgets
+  </.link>
+</div>
+
+<div class="bg-white rounded border border-gray-100 px-6 py-6">
+  <div class="flex justify-between items-center mb-4 space-x-2">
+    <div>
+      <h1 class="text-2xl font-bold text-gray-900">{@budget.name}</h1>
+      <p :if={@budget.description} class="text-gray-600 mt-1">{@budget.description}</p>
+    </div>
+  </div>
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+    <div class="space-y-2">
+      <% balance = Map.get(@ending_balances, @current_period_id) || Decimal.new("0") %>
+      <div class="flex items-center space-x-2">
+        <.icon name="hero-wallet" class="w-4 h-4 text-gray-400" />
+        <span class="text-sm font-medium text-gray-500">Current Balance</span>
+      </div>
+      <div>
+        <.currency amount={balance} class="text-2xl font-bold" />
+      </div>
+      <% total_funding = get_in(@summary, [:total, :funding]) || Decimal.new("0") %>
+      <% total_spending = get_in(@summary, [:total, :spending]) || Decimal.new("0") %>
+      <div class="grid grid-cols-2 text-gray-500">
+        <div>Total Funding</div>
+        <div>Total Spending</div>
+        <div><.currency amount={total_funding} positive_class="text-gray-400" /></div>
+        <div>
+          <.currency
+            amount={Decimal.negate(total_spending)}
+            class="text-gray-400"
+            negative_class="text-gray-400"
+          />
+        </div>
+      </div>
+    </div>
+    <div class="space-y-2">
+      <div class="flex items-center space-x-2">
+        <.icon name="hero-banknotes" class="w-4 h-4 text-gray-400" />
+        <span class="text-sm font-medium text-gray-500">Transactions</span>
+      </div>
+      <div class="text-gray-900">
+        <.link
+          navigate={~p"/budgets/#{@budget}/new-transaction"}
+          class="bg-blue-100 text-blue-800 hover:bg-blue-200 px-3 py-2 rounded-lg inline-flex items-center gap-2"
+        >
+          <.icon name="hero-plus" class="h-5 w-5" />
+          <span>New Transaction</span>
+        </.link>
+      </div>
+    </div>
+
+    <div class="space-y-2">
+      <div class="flex items-center space-x-2">
+        <.icon name="hero-users" class="w-4 h-4 text-gray-400" />
+        <span class="text-sm font-medium text-gray-500">Collaboration</span>
+      </div>
+
+      <.link
+        navigate={~p"/budgets/#{@budget}/collaborators"}
+        class="inline-flex items-center bg-gray-100 text-gray-800 hover:bg-gray-200 px-3 py-2 rounded-lg gap-2"
+      >
+        <.icon name="hero-user-plus" class="w-5 h-5" />
+        {ngettext(
+          "One collaborator",
+          "%{count} collaborators",
+          Enum.count(@budget.collaborators)
+        )}
+      </.link>
+    </div>
+  </div>
+</div>
+
+<div class="grid grid-cols-1 gap-4 mt-6">
+  <.link
+    :for={period <- @budget.periods}
+    navigate={~p"/budgets/#{@budget}/periods/#{period}"}
+    class="bg-white rounded shadow-sm p-4 cursor-pointer hover:shadow-md transition-shadow"
+  >
+    <% is_future_period = Date.after?(period.start_date, Date.utc_today()) %>
+    <% ending_balance = Map.get(@ending_balances, period.id) %>
+    <div class="flex justify-between items-center mb-3">
+      <h3 class="font-medium text-gray-900">
+        {period.start_date}
+      </h3>
+      <.icon name="hero-chevron-right" class="w-5 h-5 text-gray-400" />
+    </div>
+    <div class="space-y-3">
+      <div class="flex justify-between items-baseline">
+        <div class="text-sm text-gray-500">Running Balance</div>
+        <.currency
+          amount={ending_balance}
+          class="text-lg font-semibold"
+          positive_class={if is_future_period, do: "text-gray-400", else: "text-green-600"}
+          negative_class={if is_future_period, do: "text-gray-400", else: "text-red-600"}
+        />
+      </div>
+
+      <% funding_amount = get_in(@summary, [period.id, :funding]) || Decimal.new("0") %>
+      <div :if={Decimal.gt?(funding_amount, 0)} class="flex justify-between items-baseline">
+        <div class="text-sm text-gray-500">Funding</div>
+        <.currency amount={funding_amount} class="text-sm" positive_class="text-gray-500" />
+      </div>
+
+      <% spent_amount = get_in(@summary, [period.id, :spending]) || Decimal.new("0") %>
+      <div :if={Decimal.gt?(spent_amount, 0)} class="flex justify-between items-baseline">
+        <div class="text-sm text-gray-500">Spent</div>
+        <.currency amount={Decimal.negate(spent_amount)} class="text-sm" />
+      </div>
+
+      <div :if={is_future_period} class="mt-2 text-xs text-gray-400 italic">
+        Projected balance including rollovers
+      </div>
+    </div>
+  </.link>
+</div>

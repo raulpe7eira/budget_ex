@@ -1,8 +1,8 @@
-defmodule Budget.Factory do
-  use ExMachina.Ecto, repo: Budget.Repo
+defmodule BudgetEx.Factory do
+  use ExMachina.Ecto, repo: BudgetEx.Repo
 
-  alias Budget.Accounts
-  alias Budget.Tracking
+  alias BudgetEx.Accounts
+  alias BudgetEx.Tracking
 
   def user_factory do
     %Accounts.User{

@@ -7,19 +7,19 @@
 # General application configuration
 import Config
 
-config :budget,
-  ecto_repos: [Budget.Repo],
+config :budget_ex,
+  ecto_repos: [BudgetEx.Repo],
   generators: [timestamp_type: :utc_datetime, binary_id: true]
 
 # Configures the endpoint
-config :budget, BudgetWeb.Endpoint,
+config :budget_ex, BudgetExWeb.Endpoint,
   url: [host: "localhost"],
   adapter: Bandit.PhoenixAdapter,
   render_errors: [
-    formats: [html: BudgetWeb.ErrorHTML, json: BudgetWeb.ErrorJSON],
+    formats: [html: BudgetExWeb.ErrorHTML, json: BudgetExWeb.ErrorJSON],
     layout: false
   ],
-  pubsub_server: Budget.PubSub,
+  pubsub_server: BudgetEx.PubSub,
   live_view: [signing_salt: "JRQ3FatW"]
 
 # Configures the mailer
@@ -29,12 +29,12 @@ config :budget, BudgetWeb.Endpoint,
 #
 # For production it's recommended to configure a different adapter
 # at the `config/runtime.exs`.
-config :budget, Budget.Mailer, adapter: Swoosh.Adapters.Local
+config :budget_ex, BudgetEx.Mailer, adapter: Swoosh.Adapters.Local
 
 # Configure esbuild (the version is required)
 config :esbuild,
   version: "0.17.11",
-  budget: [
+  budget_ex: [
     args:
       ~w(js/app.js --bundle --target=es2017 --outdir=../priv/static/assets --external:/fonts/* --external:/images/*),
     cd: Path.expand("../assets", __DIR__),
@@ -44,7 +44,7 @@ config :esbuild,
 # Configure tailwind (the version is required)
 config :tailwind,
   version: "3.4.3",
-  budget: [
+  budget_ex: [
     args: ~w(
       --config=tailwind.config.js
       --input=css/app.css

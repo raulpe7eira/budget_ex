@@ -1,4 +1,4 @@
-defmodule Budget.Repo.Migrations.CreateBudgetTransactions do
+defmodule BudgetEx.Repo.Migrations.CreateBudgetTransactions do
   use Ecto.Migration
 
   def change do
