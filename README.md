@@ -4,7 +4,7 @@ A collaborative budget tracking application built with Phoenix LiveView and Elix
 
 ## About
 
-This project is based on the YouTube playlist tutorial series by Christian Alexander (https://github.com/ChristianAlexander) available at:
+This project is based on the YouTube playlist tutorial series by [Christian Alexander](https://github.com/ChristianAlexander) available at:
 https://youtube.com/playlist?list=PL31bV6MaFAPllC8JP0vaRKrVm5kj7c1vc
 
 ## Architecture
