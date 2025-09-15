@@ -2,6 +2,8 @@
 
 A collaborative budget tracking application built with Phoenix LiveView and Elixir.
 
+<img width="1440" height="1017" alt="Screenshot 2025-09-13 at 22 19 49" src="https://github.com/user-attachments/assets/10270587-fc9e-4beb-af45-1e0fd15210b1" />
+
 ## About
 
 This project is based on the YouTube playlist tutorial series by [Christian Alexander](https://github.com/ChristianAlexander) available at:
